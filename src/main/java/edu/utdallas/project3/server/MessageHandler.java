@@ -8,6 +8,6 @@ import java.io.IOException;
  *
  */
 public interface MessageHandler {
-    void handleMessage(Message m, int srcId, Tag tag) throws IOException;
+    void handleMessage(Message m, int srcId, MessageType tag) throws IOException;
     Message receiveMessage(int fromId) throws IOException;
 }

@@ -10,7 +10,7 @@ import java.util.List;
 
 import edu.utdallas.project3.server.Message;
 import edu.utdallas.project3.server.Node;
-import edu.utdallas.project3.server.Tag;
+import edu.utdallas.project3.server.MessageType;
 
 /**
  * A coordinator for manage  
@@ -56,7 +56,7 @@ public class Linker {
      * @param content Message body
      * @throws IOException 
      */
-    public synchronized void sendMessage(int dstId, Tag tag, String content) throws IOException{
+    public synchronized void sendMessage(int dstId, MessageType tag, String content) throws IOException{
         sendMessage(dstId, new Message(myId, dstId, tag, content));
     }
     
@@ -73,9 +73,19 @@ public class Linker {
      * @param content Message body
      * @throws IOException
      */
-    public void multicast(List<Node> members, Tag tag, String content) throws IOException{
+    public void multicast(List<Node> members, MessageType tag, String content) throws IOException{
         for(Node member : members){
             sendMessage(member.getNodeId(), tag, content);
+        }
+    }
+    
+    public synchronized void broadcast(Message message) throws IOException{
+        if (neighbors != null && neighbors.isEmpty()){
+            for (Node remote : neighbors){
+                int destinationId = remote.getNodeId();
+                message.setDestinationId(destinationId);
+                sendMessage(destinationId, message);
+            }
         }
     }
         

@@ -11,7 +11,7 @@ import java.util.List;
 
 import edu.utdallas.project3.server.Message;
 import edu.utdallas.project3.server.Node;
-import edu.utdallas.project3.server.Tag;
+import edu.utdallas.project3.server.MessageType;
 
 
 /**
@@ -80,15 +80,15 @@ public class Connector {
             Message msg = (Message)ois.readObject();
             System.out.println(String.format("[Node %d] [Connect:Phase 1] Receive %s", myId, msg.toString()));
             
-            int fromId = msg.getSrcId();
+            int fromId = msg.getSourceId();
             int fromIndex = Collections.binarySearch(processes, new Node(fromId));
-            if(msg.getTag().equals(Tag.HANDSHAKE)){
+            if(msg.getMessageType().equals(MessageType.HANDSHAKE)){
                 link[fromIndex] = socket;  
                 in[fromIndex] = ois;
                 out[fromIndex] = new ObjectOutputStream(socket.getOutputStream());
 
                 int src = myId, dst = fromId;
-                msg = new Message(src, dst, Tag.HANDSHAKE, "Response");
+                msg = new Message(src, dst, MessageType.HANDSHAKE, "Response");
                 out[fromIndex].writeObject(msg);
                 
                 numRecved++;
@@ -123,14 +123,14 @@ public class Connector {
             
             /* Send a handshake message to P_i */
             int src = myId, dst = process.getNodeId();
-            Message msg = new Message(src, dst, Tag.HANDSHAKE, "Request");
+            Message msg = new Message(src, dst, MessageType.HANDSHAKE, "Request");
             out[dstIndex].writeObject(msg);
             out[dstIndex].flush();
 
             // ObjectInputStream constructor will block until the header has been read.  
             in[dstIndex] = new ObjectInputStream(link[dstIndex].getInputStream());
             msg = (Message)in[dstIndex].readObject();
-            if(msg.getTag().equals(Tag.HANDSHAKE)){
+            if(msg.getMessageType().equals(MessageType.HANDSHAKE)){
                 System.out.println(String.format("[Node %d] [Connect:Phase 3] InputStream Setup Success! ", myId));
             }
             System.out.println(String.format("[Node %d] [Connect:Phase 3] Send %s", myId, msg.toString()));

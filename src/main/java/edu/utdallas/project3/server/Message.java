@@ -11,10 +11,11 @@ public class Message implements Serializable{
     
     private static final long serialVersionUID = 1L;
     
-    private int srcId;
-    private int dstId;
+    private int sourceId;
+    private int destinationId;
     private String content;
-    private Tag tag;
+    private MessageType tag;
+    private int timestamp;
     
     /**
      * Constructor for application message
@@ -24,9 +25,9 @@ public class Message implements Serializable{
      * @param content
      */
     public Message(int srcId, int dst, String content){
-        this.srcId = srcId;
-        this.dstId = dst;
-        this.tag = Tag.DEFAULT;
+        this.sourceId = srcId;
+        this.destinationId = dst;
+        this.tag = MessageType.DEFAULT;
         this.content = content;
     }
     
@@ -37,35 +38,40 @@ public class Message implements Serializable{
      * @param tag
      * @param content
      */
-    public Message(int src, int dst, Tag tag, String content){
+    public Message(int src, int dst, MessageType tag, String content){
         this(src, dst, content);
-        setTag(tag);
+        setMessageType(tag);
     }
     
-    
-    public int getSrcId() {
-        return srcId;
+    public int getSourceId() {
+        return sourceId;
     }
 
-    public void setSrcId(int srcId) {
-        this.srcId = srcId;
-    }
-    
-
-    public int getDstId() {
-        return dstId;
+    public void setSourceId(int sourceId) {
+        this.sourceId = sourceId;
     }
 
-    public void setDstId(int dstId) {
-        this.dstId = dstId;
+    public int getDestinationId() {
+        return destinationId;
     }
-    
 
-    public Tag getTag() {
+    public void setDestinationId(int destinationId) {
+        this.destinationId = destinationId;
+    }
+
+    public int getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(int timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public MessageType getMessageType() {
         return tag;
     }
 
-    public void setTag(Tag tag) {
+    public void setMessageType(MessageType tag) {
         this.tag = tag;
     }
     
@@ -83,7 +89,7 @@ public class Message implements Serializable{
     public String toString(){
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("[%s] SOURCE = %d DST = %d CONTENT = \"%s\" ", 
-                tag, this.srcId, this.dstId, this.content));
+                tag, this.sourceId, this.destinationId, this.content));
         return sb.toString();
     }
 

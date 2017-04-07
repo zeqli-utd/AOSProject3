@@ -1,10 +1,8 @@
 package edu.utdallas.project3.server;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import edu.utdallas.project3.socket.Linker;
 import edu.utdallas.project3.tools.MutexConfig;

@@ -9,6 +9,9 @@ import edu.utdallas.project3.socket.Linker;
 import edu.utdallas.project3.tools.MutexConfig;
 
 public class Process implements MessageHandler{
+
+    protected static final int INFINITY = -1;
+    protected static final int DUMMY_DESTINATION = -1;
     protected int numProc, myId;
     protected Linker linker;
    
@@ -73,27 +76,23 @@ public class Process implements MessageHandler{
      * 
      * @throws IOException 
      */
-    public synchronized void handleMessage(Message msg, int srcId, Tag tag) throws IOException{
-        if(tag == Tag.APP) 
-            System.out.println("This is application message");
-        else 
-            System.out.println(String.format("[Node %d] [Request] content=%s", myId, msg.toString()));
+    public synchronized void handleMessage(Message msg, int srcId, MessageType tag) throws IOException{
+        System.out.println(String.format("[Node %d] [Request] content=%s", myId, msg.toString()));
     }
-    
-    /**
-     * Send message to a specific node
-     * @param dstId
-     * @param tag
-     * @param content
-     * @throws IOException
-     */
-    public synchronized void sendMessage(int destination, Tag tag, String content) throws IOException{
+
+    public synchronized void sendMessage(int destination, MessageType tag, String content) throws IOException{
         Message message = new Message(myId, destination, tag, content);
         linker.sendMessage(destination, message);
     }
     
+
+    
     public synchronized void sendMessage(int destination, Message message) throws IOException{
         linker.sendMessage(destination, message);
+    }
+    
+    public synchronized void broadcast(Message message) throws IOException{
+        linker.broadcast(message);
     }
     
     /**
@@ -102,7 +101,7 @@ public class Process implements MessageHandler{
      * @param content
      * @throws IOException
      */
-    public synchronized void sendToNeighbors(Tag tag, String content) throws IOException{
+    public synchronized void sendToNeighbors(MessageType tag, String content) throws IOException{
         List<Node> neighbors = linker.getNeighbors();
         linker.multicast(neighbors, tag, content);
     }
@@ -132,23 +131,6 @@ public class Process implements MessageHandler{
         }
     }
     
-    /**
-     * Request permission to run globalState() function
-     * @throws InterruptedException
-     */
-    public synchronized void requestSnapshotPermission() throws InterruptedException{
-        System.out.println(String.format("[Node %d] [SNAPSHOT] Request Permission.", myId));
-        snapshotPermission.acquire();
-    }
-    
-    /**
-     * Grant permission when at least one node is active.
-     * Control by SpanTree
-     */
-    protected synchronized void grantSnapshotPermisson(){
-        System.out.println(String.format("[Node %d] [SNAPSHOT] Grant Permission.", myId));
-        snapshotPermission.release();
-    }
     /**
      * String representation of process
      */

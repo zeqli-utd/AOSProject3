@@ -25,9 +25,8 @@ public class ListenerThread implements Runnable {
     public void run() {
         try {
             while(true){
-                Message msg;
-                msg = process.receiveMessage(channel);
-                process.handleMessage(msg, msg.getSrcId(), msg.getTag());
+                Message message = process.receiveMessage(channel);
+                process.handleMessage(message, message.getSourceId(), message.getMessageType());
             }
         } catch (SocketException | EOFException e) {
             // Handle Socket Closed Exception
