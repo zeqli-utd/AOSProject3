@@ -1,0 +1,3 @@
+2017-04-08 14:05:27  [ main:0 ] - [ DEBUG ]  This is debug message.
+2017-04-08 14:05:27  [ main:3 ] - [ INFO ]  This is info message.
+2017-04-08 14:05:27  [ main:3 ] - [ ERROR ]  This is error message.
