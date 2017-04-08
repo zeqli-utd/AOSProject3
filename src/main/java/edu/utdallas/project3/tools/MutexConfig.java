@@ -131,7 +131,8 @@ public class MutexConfig implements ConfigurationLoader {
             
             
         } catch (IOException x) {
-            System.err.format("IOException: %s%n", x);
+            x.printStackTrace();
+            //System.err.format("IOException: %s%n", x);
         } catch (NullPointerException e){
             System.err.println(e.getMessage());
         }
