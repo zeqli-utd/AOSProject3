@@ -120,7 +120,8 @@ public class MutexConfig implements ConfigurationLoader {
                 
                 // hostInfo[0] - node id, hostInfo[1] - host addr, hostInfo[2] - host port
                 Node host = new Node(Integer.parseInt(hostInfo[0]), hostInfo[1] + ".utdallas.edu", hostInfo[2]);
-                hosts.add(host);
+                if (host.getNodeId() != myId)
+                    hosts.add(host);
                 n--;
             }
             validateConfigurationFile(n);
@@ -141,6 +142,7 @@ public class MutexConfig implements ConfigurationLoader {
     public void doConfigure(List<Node> neighbors){
         Collections.sort(neighbors);
         neighbors = new ArrayList<>(neighbors);
+        this.neighbors = neighbors;
     }
     
     private void validateConfigurationFile(int n) throws IOException{

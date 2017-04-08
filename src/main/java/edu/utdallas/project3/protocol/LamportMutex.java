@@ -11,6 +11,8 @@ public class LamportMutex extends Process implements Lock {
     
     DirectClock v;
     int[] requestQueue; // request queue
+    
+    
     public LamportMutex(Linker linker, MutexConfig config) {
         super(linker, config);
         v = new DirectClock(numProc, myId);
@@ -18,6 +20,9 @@ public class LamportMutex extends Process implements Lock {
         for (int j = 0; j < numProc; j++)
             requestQueue[j] = INFINITY;
     }
+    
+    
+    
     public synchronized void csEnter() throws IOException {
         v.tick();
         requestQueue[myId] = v.getValue(myId);

@@ -1,14 +1,18 @@
 package edu.utdallas.cs6378.project3;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.net.URISyntaxException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 
 import edu.utdallas.project3.tools.MutexConfig;
 
 public class ConfigurationLoadingTest {
+    
+    private static final Logger logger = LogManager.getLogger();
 
     @Test
     public void testLoadingConfiguration() {
@@ -26,6 +30,8 @@ public class ConfigurationLoadingTest {
             assertEquals(meanInterRequestDelay, 20);
             assertEquals(meanCSExecution, 10);
             assertEquals(numberofRequest, 1000);
+            logger.info(config.getNeighbors().toString());
+            
             
         } catch (URISyntaxException e) {  }    
     }
