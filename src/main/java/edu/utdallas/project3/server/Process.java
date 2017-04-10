@@ -76,11 +76,11 @@ public class Process implements MessageHandler{
      * 
      * @throws IOException 
      */
-    public synchronized void handleMessage(Message msg, int srcId, MessageType tag) throws IOException{
+    public synchronized void handleMessage(Message msg, int srcId, MessageType tag) {
         System.out.println(String.format("[Node %d] [Request] content=%s", myId, msg.toString()));
     }
 
-    public synchronized void sendMessage(int destination, MessageType tag, String content) throws IOException{
+    public synchronized void sendMessage(int destination, MessageType tag, String content) {
         Message message = new Message(myId, destination, tag, content);
         linker.sendMessage(destination, message);
     }
@@ -110,17 +110,9 @@ public class Process implements MessageHandler{
      * Retrieve message for a specific node
      * @throws IOException 
      */
-    public Message receiveMessage(int fromId) throws IOException{
-        try{
-            Message message = linker.receiveMessage(fromId);
-            return message;
-        } catch (ClassNotFoundException e){
-            e.printStackTrace();
-            return null;
-        } catch (IOException e){
-            linker.close();
-            throw e;
-        } 
+    public Message receiveMessage(int fromId) {
+        Message message = linker.receiveMessage(fromId);
+        return message;
     }
     
     public synchronized void procWait(){

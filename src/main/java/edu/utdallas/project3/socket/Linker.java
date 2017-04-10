@@ -5,8 +5,9 @@ package edu.utdallas.project3.socket;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,22 +23,23 @@ import edu.utdallas.project3.server.Node;
  */
 public class Linker {
     private static final Logger logger = LogManager.getLogger();
-    
-    private ObjectOutputStream[] out;
-    private ObjectInputStream[] in;
+
     private int myId;               // Local node id
     private int numProc;            // Number of processes it contact with
     private Connector connector;    
     private List<Node> neighbors;
+    
+    
+    private Map<Integer, ObjectOutputStream> outMap;
+    private Map<Integer, ObjectInputStream> inMap;
     
     public Linker(int myId, List<Node> neighbors){
         this.myId = myId;
         this.numProc = neighbors.size();
         this.neighbors = neighbors;
         
-        this.out = new ObjectOutputStream[numProc];
-        this.in = new ObjectInputStream[numProc];
-        
+        this.inMap = new HashMap<>();
+        this.outMap = new HashMap<>();
         this.connector = Connector.getInstance();
     }
     
@@ -51,19 +53,16 @@ public class Linker {
      */
     public void buildChannels(int listenPort)  {
         try {
-            connector.connect(listenPort, myId, in, out, neighbors);
+            connector.connect(listenPort, myId, inMap, outMap, neighbors);
         } catch (ClassNotFoundException e){
             logger.error("(Message) Class not found", e.getMessage());
-            close();
+            e.printStackTrace();
         } catch (IOException e) {
-            // Prints message and stack trace
             logger.error("Connection Error ", e.getMessage());
             close();
         } catch (InterruptedException ex){
-            // restore interrupted status
             Thread.currentThread().interrupt();
             logger.error("Thread Error ", ex.getMessage());
-            close();
         } 
     }
     
@@ -81,12 +80,9 @@ public class Linker {
     
     public synchronized void sendMessage(int dstId, Message message) {
         try {
-            int dstIndex = idToIndex(dstId);
-            out[dstIndex].writeObject(message);
+            outMap.get(dstId).writeObject(message);
         } catch (IOException e){
-            // Prints message and stack trace
             logger.error("Connection Error ", e.getMessage());
-            close();
         } 
         
     }
@@ -123,10 +119,17 @@ public class Linker {
      * @throws IOException
      * @throws ClassNotFoundException
      */
-    public Message receiveMessage(int fromId) throws IOException, ClassNotFoundException {
-        int fromIndex = idToIndex(fromId);
-        Message msg = (Message)in[fromIndex].readObject();   // This will block if no message.
-        return msg;
+    public Message receiveMessage(int fromId){
+        Message message = null;
+        try {
+            message = (Message)inMap.get(fromId).readObject(); // This will block if no message.
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.out.print(String.format("[Node %d] Channel %d Terminated. %s\n", myId, fromId, e.toString()));
+            inMap.remove(fromId);
+        }
+        return message;
     }
     
     public int getMyId() {
@@ -143,10 +146,6 @@ public class Linker {
 
     public void setNeighbors(List<Node> neighbors) {
         this.neighbors = neighbors;
-    }
-    
-    private int idToIndex(int nodeId){
-        return Collections.binarySearch(neighbors, new Node(nodeId));
     }
 
     public void close(){

@@ -1,5 +1,4 @@
 package edu.utdallas.project3.protocol;
-import java.io.IOException;
 import java.util.Comparator;
 import java.util.PriorityQueue;
 
@@ -27,9 +26,7 @@ public class LamportMutex extends Process implements Lock {
                 }
             }
         });
-    }
-    
-    
+    }    
     
     public synchronized void csEnter() {
         v.tick();
@@ -41,12 +38,10 @@ public class LamportMutex extends Process implements Lock {
         }
     }
     
-    
     public synchronized void csLeave() {
         requestQueue.poll();
         broadcastReleaseMessage(v.getValue(myId));
     }
-    
     
     private boolean okayCS() {
         // Pi’s own request is at the top of its queue. Conform to L2
@@ -81,7 +76,7 @@ public class LamportMutex extends Process implements Lock {
     
     
     @Override
-    public synchronized void handleMessage(Message message, int src, MessageType tag) throws IOException {
+    public synchronized void handleMessage(Message message, int src, MessageType tag) {
         int timeStamp = message.getTimestamp();
         v.receiveAction(src, timeStamp);
         System.out.print(String.format("[Node %d] Accepted Message %s from %d\n", myId, tag.name(), src));

@@ -1,6 +1,5 @@
 package edu.utdallas.project3.protocol;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -57,7 +56,7 @@ public class RAMutex extends Process implements Lock {
     }
     
     @Override
-    public synchronized void handleMessage(Message message, int src, MessageType tag) throws IOException {
+    public synchronized void handleMessage(Message message, int src, MessageType tag) {
         int timeStamp = message.getTimestamp();
         c.receiveAction(src, timeStamp);
         if (tag.equals(MessageType.REQUEST)) {

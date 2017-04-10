@@ -1,8 +1,10 @@
 package Test;
-import org.apache.log4j.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Log4jSimpleTest {
-	private static Logger logger = Logger.getLogger(Log4jSimpleTest.class);  
+	private static Logger logger = LogManager.getLogger(Log4jSimpleTest.class);  
 
     /** 
      * @param args 

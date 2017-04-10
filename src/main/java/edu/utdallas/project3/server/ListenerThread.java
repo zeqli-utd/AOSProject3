@@ -1,8 +1,5 @@
 package edu.utdallas.project3.server;
 
-import java.io.EOFException;
-import java.net.SocketException;
-
 /**
  * Thread listen to each neighbors
  * @author zeqing
@@ -23,17 +20,13 @@ public class ListenerThread implements Runnable {
 
     @Override
     public void run() {
-        try {
-            while(true){
-                Message message = process.receiveMessage(channel);
-                process.handleMessage(message, message.getSourceId(), message.getMessageType());
-            }
-        } catch (SocketException | EOFException e) {
-            // Handle Socket Closed Exception
-            System.out.print(String.format("[Node %d] Channel %d Terminated. %s\n", myId, channel, e.toString()));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }        
+        while(true){
+            Message message = process.receiveMessage(channel);
+            if (message == null)
+                break;
+            process.handleMessage(message, message.getSourceId(), message.getMessageType());
+        }
+      
     }
 
 
