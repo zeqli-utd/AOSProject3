@@ -87,11 +87,11 @@ public class Process implements MessageHandler{
     
 
     
-    public synchronized void sendMessage(int destination, Message message) throws IOException{
+    public synchronized void sendMessage(int destination, Message message) {
         linker.sendMessage(destination, message);
     }
     
-    public synchronized void broadcast(Message message) throws IOException{
+    public synchronized void broadcast(Message message) {
         linker.broadcast(message);
     }
     
@@ -101,7 +101,7 @@ public class Process implements MessageHandler{
      * @param content
      * @throws IOException
      */
-    public synchronized void sendToNeighbors(MessageType tag, String content) throws IOException{
+    public synchronized void sendToNeighbors(MessageType tag, String content) {
         List<Node> neighbors = linker.getNeighbors();
         linker.multicast(neighbors, tag, content);
     }

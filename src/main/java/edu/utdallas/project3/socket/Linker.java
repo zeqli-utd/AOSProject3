@@ -8,9 +8,12 @@ import java.io.ObjectOutputStream;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import edu.utdallas.project3.server.Message;
-import edu.utdallas.project3.server.Node;
 import edu.utdallas.project3.server.MessageType;
+import edu.utdallas.project3.server.Node;
 
 /**
  * A coordinator for manage  
@@ -18,6 +21,8 @@ import edu.utdallas.project3.server.MessageType;
  *
  */
 public class Linker {
+    private static final Logger logger = LogManager.getLogger();
+    
     private ObjectOutputStream[] out;
     private ObjectInputStream[] in;
     private int myId;               // Local node id
@@ -44,8 +49,22 @@ public class Linker {
      * @throws ClassNotFoundException 
      * @throws Exception
      */
-    public void buildChannels(int listenPort) throws ClassNotFoundException, IOException, InterruptedException {
-        connector.connect(listenPort, myId, in, out, neighbors);
+    public void buildChannels(int listenPort)  {
+        try {
+            connector.connect(listenPort, myId, in, out, neighbors);
+        } catch (ClassNotFoundException e){
+            logger.error("(Message) Class not found", e.getMessage());
+            close();
+        } catch (IOException e) {
+            // Prints message and stack trace
+            logger.error("Connection Error ", e.getMessage());
+            close();
+        } catch (InterruptedException ex){
+            // restore interrupted status
+            Thread.currentThread().interrupt();
+            logger.error("Thread Error ", ex.getMessage());
+            close();
+        } 
     }
     
     /**
@@ -56,13 +75,20 @@ public class Linker {
      * @param content Message body
      * @throws IOException 
      */
-    public synchronized void sendMessage(int dstId, MessageType tag, String content) throws IOException{
+    public synchronized void sendMessage(int dstId, MessageType tag, String content) {
         sendMessage(dstId, new Message(myId, dstId, tag, content));
     }
     
-    public synchronized void sendMessage(int dstId, Message message) throws IOException{
-        int dstIndex = idToIndex(dstId);
-        out[dstIndex].writeObject(message);
+    public synchronized void sendMessage(int dstId, Message message) {
+        try {
+            int dstIndex = idToIndex(dstId);
+            out[dstIndex].writeObject(message);
+        } catch (IOException e){
+            // Prints message and stack trace
+            logger.error("Connection Error ", e.getMessage());
+            close();
+        } 
+        
     }
     
     /**
@@ -73,14 +99,14 @@ public class Linker {
      * @param content Message body
      * @throws IOException
      */
-    public void multicast(List<Node> members, MessageType tag, String content) throws IOException{
+    public void multicast(List<Node> members, MessageType tag, String content) {
         for(Node member : members){
             sendMessage(member.getNodeId(), tag, content);
         }
     }
     
-    public synchronized void broadcast(Message message) throws IOException{
-        if (neighbors != null && neighbors.isEmpty()){
+    public synchronized void broadcast(Message message) {
+        if (neighbors != null && !neighbors.isEmpty()){
             for (Node remote : neighbors){
                 int destinationId = remote.getNodeId();
                 message.setDestinationId(destinationId);
@@ -124,7 +150,7 @@ public class Linker {
     }
 
     public void close(){
-        connector.closeSockets();
+        connector.closeSockets(myId);
     }
     
     public int getNumProc(){

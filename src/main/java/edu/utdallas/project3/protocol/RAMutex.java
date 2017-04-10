@@ -21,7 +21,7 @@ public class RAMutex extends Process implements Lock {
     }
     
     @Override
-    public synchronized void csEnter() throws IOException{
+    public synchronized void csEnter() {
         c.tick();
         myTimestamp = c.getValue();
         broadcastRequestMessage(myTimestamp);
@@ -29,7 +29,7 @@ public class RAMutex extends Process implements Lock {
         while (numOkay < numProc-1)
             procWait();
     }
-    public synchronized void csLeave() throws IOException {
+    public synchronized void csLeave() {
         myTimestamp = INFINITY;
         while (!pendingQ.isEmpty()) {
             int pid = pendingQ.poll();
@@ -38,19 +38,19 @@ public class RAMutex extends Process implements Lock {
     }
     
     
-    public synchronized void sendOkayMessage(int destination, int timestamp) throws IOException{
+    public synchronized void sendOkayMessage(int destination, int timestamp) {
         Message message = new Message(myId, destination, MessageType.RA_OK, "Okay");
         message.setTimestamp(timestamp);
         super.sendMessage(destination, message);
     }
     
-    public synchronized void broadcastRequestMessage(int timestamp) throws IOException{
+    public synchronized void broadcastRequestMessage(int timestamp) {
         Message message = new Message(myId, DUMMY_DESTINATION, MessageType.REQUEST, "Request");
         message.setTimestamp(timestamp);
         super.broadcast(message);
     }
     
-    public synchronized void broadcastOKayMessage(int timestamp) throws IOException{
+    public synchronized void broadcastOKayMessage(int timestamp) {
         Message message = new Message(myId, DUMMY_DESTINATION, MessageType.RA_OK, "Okay");
         message.setTimestamp(timestamp);
         super.broadcast(message);

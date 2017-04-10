@@ -2,6 +2,8 @@ package edu.utdallas.project3.tools;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,10 +13,15 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import edu.utdallas.project3.server.Node;
 
 
-public class MutexConfig implements ConfigurationLoader {
+public class MutexConfig {
+    private static final Logger logger = LogManager.getLogger(MutexConfig.class.getName());
+    
     public static final String CONFIG_FILE_NAME = "config.file.name";
     public static final String CONFIG_FILE_DIRECTORY ="config.file.directory";
     public static final String NEIGHBORS = "neighbors";
@@ -24,9 +31,11 @@ public class MutexConfig implements ConfigurationLoader {
     public static final String MEAN_CS_EXECUTION = "mean.cs.execution";       
     public static final String NUM_REQUEST = "num.request";    
     
+    
     private String configFileName;
     private String configFileDirectory;
     
+    private int myId;
     private int numberOfNodes;
     private int meanInterRequestDelay;
     private int meanCSExecution;
@@ -35,10 +44,11 @@ public class MutexConfig implements ConfigurationLoader {
     private List<Node> neighbors;
     
     
-    public MutexConfig(){
+    public MutexConfig(int myId){
         configFileName = "";
         configFileDirectory = "";
         
+        this.myId = myId;
         numberOfNodes = 0;
         meanInterRequestDelay = 0;
         meanCSExecution = 0;
@@ -47,15 +57,14 @@ public class MutexConfig implements ConfigurationLoader {
         neighbors = new ArrayList<>();
     }
     
-    public void loadConfig(String relativePath, int myId){
+    public void loadConfigFromRelativePath(String relativePath){
         Path file = Paths.get(relativePath).toAbsolutePath();
         
         // System.out.println(file.toString());
-        loadConfigFromAbs(file.toString(), myId);
+        loadConfigFromAbsolutePath(file.toString());
     }
-
-    public void loadConfigFromAbs(String absolutePath, int myId) {
-        List<Node> hosts = new LinkedList<>();
+    
+    public void loadConfigFromAbsolutePath(String absolutePath) {
         Path file = Paths.get(absolutePath);
         
         // Store file name
@@ -63,16 +72,30 @@ public class MutexConfig implements ConfigurationLoader {
         configFileDirectory = file.getParent().toString();
         
 
-        System.out.println(String.format("%s = %s\n", CONFIG_FILE_NAME, configFileName));
-        System.out.println(String.format("%s = %s\n", CONFIG_FILE_DIRECTORY, configFileDirectory));
+        logger.info("{} {}", CONFIG_FILE_NAME, configFileName);
+        logger.info("{} {}", CONFIG_FILE_DIRECTORY, configFileDirectory);
         
-        
-        
+        Charset charset = Charset.forName("UTF-8");
+        try {
+            loadConfigurationFromBufferedReader(Files.newBufferedReader(file, charset));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void loadConfigurationFromInputStream(InputStream in, String fileName){
+        logger.info("{} {}", CONFIG_FILE_NAME, fileName);
+        loadConfigurationFromBufferedReader(
+                new BufferedReader(
+                        new InputStreamReader(in)));
+    }
+
+    public void loadConfigurationFromBufferedReader(BufferedReader reader) {
+        List<Node> hosts = new LinkedList<>();
         StringBuilder logger = new StringBuilder();
         logger.append(String.format("[Node %d] [Config Loader] :\n", myId));
         
-        Charset charset = Charset.forName("UTF-8");
-        try (BufferedReader reader = Files.newBufferedReader(file, charset)) {
+        try {
             String line = null;
             int n = 0;
             while ((line = reader.readLine()) != null) {
@@ -96,13 +119,6 @@ public class MutexConfig implements ConfigurationLoader {
                 logger.append(String.format("%s = %s\n", MEAN_INTER_REQUEST_DELAY, params[1]));
                 logger.append(String.format("%s = %s\n", MEAN_CS_EXECUTION, params[2]));
                 logger.append(String.format("%s = %s\n", NUM_REQUEST, params[3]));
-                
-                
-                
-                // Randomly set other nodes' state.  0 - passive, 1 - active
-                // nextInt is normally exclusive of the top value,
-                // so add 1 to make it inclusive
-                // Always set node 0 as active
                 break;
             }
 
@@ -110,7 +126,7 @@ public class MutexConfig implements ConfigurationLoader {
             
             // Load host list.
             while (n != 0 && (line = reader.readLine()) != null) {
-                line = line.replaceAll("#.*","");  // Erase everything after a comment.
+                line = line.replaceAll("#.*","").trim();  // Erase everything after a comment.
                 line = line.trim();                // Trim leading and trailing spaces.
                 if(line.length() == 0)
                     continue;
@@ -130,13 +146,10 @@ public class MutexConfig implements ConfigurationLoader {
             
             System.out.println(logger.toString());
             
-            
-        } catch (IOException x) {
-            x.printStackTrace();
-            //System.err.format("IOException: %s%n", x);
-        } catch (NullPointerException e){
-            System.err.println(e.getMessage());
+        } catch (IOException e){
+            e.printStackTrace();
         }
+        
     }
     
     public void doConfigure(List<Node> neighbors){
@@ -208,12 +221,13 @@ public class MutexConfig implements ConfigurationLoader {
     }
 
     public static MutexConfig loadFromConfigurationFile(String configurationFilePath, int myId) {
-        MutexConfig config = new MutexConfig();
-        config.loadConfig(configurationFilePath, myId);
+        MutexConfig config = new MutexConfig(myId);
+        config.loadConfigFromAbsolutePath(configurationFilePath);
         return config;
     }
-    
-    
-    
-    
+    public static MutexConfig loadFromConfigurationFile(InputStream in, String fileName, int myId) {
+        MutexConfig config = new MutexConfig(myId);
+        config.loadConfigurationFromInputStream(in, fileName);
+        return config;
+    }
 }

@@ -30,7 +30,7 @@ public class ListenerThread implements Runnable {
             }
         } catch (SocketException | EOFException e) {
             // Handle Socket Closed Exception
-            System.out.println(String.format("[Node %d] Channel %d Terminated. %s", myId, channel, e.toString()));
+            System.out.print(String.format("[Node %d] Channel %d Terminated. %s\n", myId, channel, e.toString()));
         } catch (Exception e) {
             e.printStackTrace();
         }        

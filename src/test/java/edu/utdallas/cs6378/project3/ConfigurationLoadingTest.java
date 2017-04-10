@@ -2,6 +2,7 @@ package edu.utdallas.cs6378.project3;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.InputStream;
 import java.net.URISyntaxException;
 
 import org.apache.logging.log4j.LogManager;
@@ -36,4 +37,22 @@ public class ConfigurationLoadingTest {
         } catch (URISyntaxException e) {  }    
     }
 
+    @Test
+    public void testLoadingConfigurationFromInputStream() {
+        logger.info("---------- Test load resource from inputstream ----------");
+        ClassLoader classLoader = getClass().getClassLoader();
+        InputStream in = classLoader.getResourceAsStream("config.txt");
+        MutexConfig config = MutexConfig.loadFromConfigurationFile(in, "config.txt", 0);    
+        int numberOfNodes = config.getNumberOfNodes();
+        int meanCSExecution = config.getMeanCSExecution();
+        int meanInterRequestDelay = config.getMeanInterRequestDelay();
+        int numberofRequest = config.getNumberOfRequest();
+        
+        assertEquals(numberOfNodes, 5);
+        assertEquals(meanInterRequestDelay, 20);
+        assertEquals(meanCSExecution, 10);
+        assertEquals(numberofRequest, 1000);
+        logger.info(config.getNeighbors().toString());
+    
+    }
 }

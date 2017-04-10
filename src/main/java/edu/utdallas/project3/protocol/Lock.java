@@ -9,10 +9,10 @@ public interface Lock extends MessageHandler {
      * Enter critical section. May block.
      * @throws IOException 
      */
-    public void csEnter() throws IOException;      
+    public void csEnter();      
     
     /**
      * Leave critical section. 
      */
-    public void csLeave() throws IOException;
+    public void csLeave();
 }
