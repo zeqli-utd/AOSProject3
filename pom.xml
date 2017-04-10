@@ -11,26 +11,15 @@
 	<url>http://maven.apache.org</url>
 
 	<build>
+		<finalName>dmLauncher</finalName>
 		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.0.2</version>
-				<configuration>
-					<archive>
-						<manifest>
-							<addClasspath>true</addClasspath>
-							<mainClass>edu.utdallas.project3.server.MutexServer</mainClass>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<version>3.0.0</version>
 				<configuration>
+					<appendAssemblyId>false</appendAssemblyId>
+					<outputDirectory>bin</outputDirectory>
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
