@@ -5,14 +5,17 @@ import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.Marker;
+import org.apache.logging.log4j.MarkerManager;
+
 import edu.utdallas.project3.protocol.LamportMutex;
 import edu.utdallas.project3.protocol.Lock;
 import edu.utdallas.project3.protocol.RAMutex;
 import edu.utdallas.project3.socket.Linker;
 import edu.utdallas.project3.tools.MutexConfig;
 import edu.utdallas.project3.tools.UndefinedPropertyException;
-
-
 
 /**
  * 
@@ -21,6 +24,9 @@ import edu.utdallas.project3.tools.UndefinedPropertyException;
  * @author Jingyi Liu, The University of Texas at Dallas
  */
 public class MutexServer {    
+	private static final Logger logger = LogManager.getLogger(MutexServer.class.getName());
+	private static final Marker CRITICAL_SECTION_MARKER = MarkerManager.getMarker("CRITICAL_SECTION");
+	
     private static final String MUTEX_ALGORITHM = "mutex.algorithm";
     private static final String MUTEX_LAMPORT = "mutex.lamport";
     private static final String MUTEX_RICART_AND_AGRAWALA = "mutex.ricart.and.agrawala";
@@ -89,11 +95,11 @@ public class MutexServer {
 //            ((LamportMutex)lock).sendToNeighbors(MessageType.DEFAULT, "");
 //            ((LamportMutex)lock).broadcastReleaseMessage(5);
             
-            System.out.print(myId + " is not in CS\n");
             Thread.sleep(2000);
             lock.csEnter();
+            logger.info(CRITICAL_SECTION_MARKER, "[Node {}] Enter critical section", myId);
             Thread.sleep(2000);
-            System.out.print(myId + " is in CS *****\n");
+            logger.info(CRITICAL_SECTION_MARKER, "[Node {}] Leave critical section", myId);
             lock.csLeave();
 
             Thread.sleep(10000);

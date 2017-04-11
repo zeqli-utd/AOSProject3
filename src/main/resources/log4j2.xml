@@ -1,13 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="INFO">
+<Configuration status="info">
+<!-- status must be info -->
+	<Properties>
+		<Property name="console_pattern" value="%d{DATE} [%thread] %-5level - %message%n"/>
+		<Property name="file_pattern" value="%message%n"/>
+	</Properties>
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
+            <PatternLayout pattern="${console_pattern}" />
         </Console>
+        <File name="Myfile" fileName="logs/app.log" immediateFlush="true" append="true">
+        	<!-- immediateFlush = true; // Every write will be followed by a flush -->
+        	<!-- append = false;        // The file will be clear before new records are written -->
+        	<PatternLayout pattern="${file_pattern}"/>
+        	
+        	<!-- Logging with marker CRITICAL_SECTION will be logged -->
+        	<MarkerFilter marker="CRITICAL_SECTION" onMatch="ACCEPT" onMismatch="DENY"/>
+        </File>
+        	
     </Appenders>
     <Loggers>
-        <Root level="all">
+        <Root level="debug">
             <AppenderRef ref="Console" />
+            <AppenderRef ref="Myfile" />
         </Root>
     </Loggers>
 </Configuration>
