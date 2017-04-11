@@ -2,7 +2,8 @@
 <Configuration status="info">
 <!-- status must be info -->
 	<Properties>
-		<Property name="console_pattern" value="%d{DATE} [%thread] %-5level - %message%n"/>
+		<Property name="console_pattern" value="%message%n"/>
+		<Property name="console_pattern_debug" value="[%thread] %logger{1.} %-5level - %message%n"/>
 		<Property name="file_pattern" value="%message%n"/>
 	</Properties>
     <Appenders>
