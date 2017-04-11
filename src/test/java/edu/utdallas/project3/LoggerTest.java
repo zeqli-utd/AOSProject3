@@ -1,4 +1,4 @@
-package edu.utdallas.cs6378.project3;
+package edu.utdallas.project3;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

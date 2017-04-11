@@ -1,4 +1,4 @@
-package edu.utdallas.cs6378.project3;
+package edu.utdallas.project3;
 
 import static org.junit.Assert.*;
 
