@@ -7,7 +7,6 @@ import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -37,7 +36,6 @@ public class Connector {
     
     private ServerSocket listener;
     private Map<Integer, Socket> session;
-    private Socket[] link;
     
     private static volatile Connector instance = null;
     
@@ -46,7 +44,6 @@ public class Connector {
     }
     
     public static Connector getInstance() {
-        //TODO: This is not thread safe
         // Double checking lock for thread safe.
         if(instance == null){
             synchronized (Connector.class) {
@@ -72,97 +69,6 @@ public class Connector {
      * @throws InterruptedException 
      * @throws Exception
      */
-    @Deprecated
-    public void connect(
-            int listenPort, 
-            int myId, 
-            ObjectInputStream[] in, 
-            ObjectOutputStream[] out, 
-            List<Node> processes) throws IOException, ClassNotFoundException, InterruptedException {
-        
-        int numProc = processes.size();
-        link = new Socket[numProc];
-
-        System.out.print(String.format("[Node %d] [Connect: Phase 0] Setup Server at port %d\n", myId, listenPort));
-        //listener = new ServerSocket(listenPort);
-        
-        listener = new ServerSocket(listenPort);
-        
-        /* Accept connections from all the smaller processes */
-        int numRecved = 0;
-        System.out.print(String.format("[Node %d] [Connect: Phase 0] Targets: %s\n", myId, processes.toString()));
-        
-        while(numRecved < processes.size() && processes.get(numRecved).getNodeId() < myId){
-            System.out.print(String.format("[Node %d] [Connect:Phase 1] Status: numRecved %d, nodeId %d\n",  myId, numRecved, processes.get(numRecved).getNodeId()));
-            Socket socket = listener.accept();
-            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-            
-            // Read the first message from new request.
-            Message msg = (Message)ois.readObject();
-            System.out.print(String.format("[Node %d] [Connect:Phase 1] Receive %s\n", myId, msg.toString()));
-            
-            int fromId = msg.getSourceId();
-            int fromIndex = Collections.binarySearch(processes, new Node(fromId));
-            if(msg.getMessageType().equals(MessageType.HANDSHAKE)){
-                link[fromIndex] = socket;  
-                in[fromIndex] = ois;
-                out[fromIndex] = new ObjectOutputStream(socket.getOutputStream());
-
-                int src = myId, dst = fromId;
-                msg = new Message(src, dst, MessageType.HANDSHAKE, "Response");
-                out[fromIndex].writeObject(msg);
-                
-                numRecved++;
-            }
-        }
-        System.out.print(String.format("[Node %d] [Connect:Phase 1] Complete.\n", myId));
-        
-        /* Contact all the bigger process*/
-        while(numRecved < processes.size()){
-            Node process = processes.get(numRecved);
-            int dstId = process.getNodeId();
-            String host = process.getHostName();
-            int port = process.getPort();
-
-            int dstIndex = Collections.binarySearch(processes, new Node(dstId));
-            
-            boolean connected = false;
-            while(!connected){
-                try{ 
-                    System.out.print(String.format("[Node %d] [Connect:Phase 2] Connect to %s:%d\n", myId, host, port));
-                    link[dstIndex] = new Socket(host, port);
-                    
-                    connected = true;
-                } catch (ConnectException e){
-                    System.out.print(String.format("[Node %d] [Connect:Phase 2] Connection fail: %s\n", myId, e.toString()));
-                    Thread.sleep(1000);          // Wait 1s to resent
-                    System.out.print(String.format("[Node %d] [Connect:Phase 2] Retry connecting...\n", myId));
-                }
-            }
-            System.out.print(String.format("[Node %d] [Connect:Phase 2] Connection success! to %s:%d\n", myId, host, port));
-            
-            out[dstIndex] = new ObjectOutputStream(link[dstIndex].getOutputStream());
-            
-            /* Send a handshake message to P_i */
-            int src = myId, dst = process.getNodeId();
-            Message msg = new Message(src, dst, MessageType.HANDSHAKE, "Request");
-            out[dstIndex].writeObject(msg);
-            out[dstIndex].flush();
-
-            // ObjectInputStream constructor will block until the header has been read.  
-            in[dstIndex] = new ObjectInputStream(link[dstIndex].getInputStream());
-            msg = (Message)in[dstIndex].readObject();
-            if(msg.getMessageType().equals(MessageType.HANDSHAKE)){
-                System.out.print(String.format("[Node %d] [Connect:Phase 3] InputStream Setup Success! \n", myId));
-            }
-            System.out.print(String.format("[Node %d] [Connect:Phase 3] Send %s\n", myId, msg.toString()));
-            numRecved++;
-        }
-
-        System.out.print(String.format("[Node %d] [Connect:Phase 3] Build Channel Done.\n", myId));
-        
-    }
-    
     public void connect(
             int listenPort, 
             int myId, 
@@ -170,8 +76,9 @@ public class Connector {
             Map<Integer, ObjectOutputStream> outMap, 
             List<Node> processes) throws IOException, ClassNotFoundException, InterruptedException {
 
-        System.out.print(String.format("[Node %d] [Connect: Phase 0] Setup Server at port %d\n", myId, listenPort));
-
+        logger.trace("[Node {}] [Connect: Phase 0] Setup Server at port {}", myId, listenPort);
+        
+        // Select connection mode: Remote or Loopback 
         String connectionMode = System.getProperty(CONNECTION_MODE, REMOTE);
         if (connectionMode.equalsIgnoreCase(REMOTE)){
             listener = new ServerSocket(listenPort);
@@ -179,19 +86,20 @@ public class Connector {
             listener = new ServerSocket(listenPort, 0, InetAddress.getLoopbackAddress());
         }
         
-        /* Accept connections from all the smaller processes */
+        // Accept connections from all the smaller processes 
         int numRecved = 0;
-        System.out.print(String.format("[Node %d] [Connect: Phase 0] Targets: %s\n", myId, processes.toString()));
+        logger.trace("[Node {}] [Connect: Phase 0] Targets: {}", myId, processes.toString());
         
         while(numRecved < processes.size() && processes.get(numRecved).getNodeId() < myId){
-            System.out.print(String.format("[Node %d] [Connect:Phase 1] Status: numRecved %d, nodeId %d\n",  myId, numRecved, processes.get(numRecved).getNodeId()));
+            logger.trace("[Node {}] [Connect:Phase 1] Status: numRecved {}, nodeId {}",  
+            		myId, numRecved, processes.get(numRecved).getNodeId());
             Socket socket = listener.accept();
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
             
             // Read the first message from new request.
             Message msg = (Message)ois.readObject();
-            System.out.print(String.format("[Node %d] [Connect:Phase 1] Receive %s\n", myId, msg.toString()));
+            logger.trace("[Node {}] [Connect:Phase 1] Receive {}", myId, msg.toString());
             
             int sourceId = msg.getSourceId();
             if(msg.getMessageType().equals(MessageType.HANDSHAKE)){
@@ -204,8 +112,7 @@ public class Connector {
                 numRecved++;
             }
         }
-        System.out.print(String.format("[Node %d] [Connect:Phase 1] Complete.\n", myId));
-        
+        logger.trace("[Node {}] [Connect:Phase 1] Complete.", myId);
         /* Contact all the bigger process*/
         while(numRecved < processes.size()){
             Node process = processes.get(numRecved);
@@ -216,8 +123,7 @@ public class Connector {
             while(!connected){
                 Socket socket = null;
                 try{ 
-                    System.out.print(String.format("[Node %d] [Connect:Phase 2] Connect to %s:%d\n", myId, host, port));
-                    
+                    logger.trace("[Node {}] [Connect:Phase 2] Connect to {}:{}", myId, host, port);
                     if (connectionMode.equalsIgnoreCase(REMOTE)){
                         socket = new Socket(host, port);
                     } else {
@@ -225,15 +131,14 @@ public class Connector {
                     }
                     connected = true;
                 } catch (ConnectException e){
-                    System.out.print(String.format("[Node %d] [Connect:Phase 2] Connection fail: %s\n", myId, e.toString()));
+                    logger.trace("[Node {}] [Connect:Phase 2] Connection fail: {}", myId, e.toString());
                     Thread.sleep(1000);          // Wait 1s to resent
-                    System.out.print(String.format("[Node %d] [Connect:Phase 2] Retry connecting...\n", myId));
+                    logger.trace("[Node {}] [Connect:Phase 2] Retry connecting...", myId);
                 }
 
                 session.put(process.getNodeId(), socket);
             }
-            System.out.print(String.format("[Node %d] [Connect:Phase 2] Connection success! to %s:%d\n", myId, host, port));
-            
+            logger.trace("[Node {}] [Connect:Phase 2] Connection success! to {}:{}", myId, host, port);
 
             ObjectOutputStream oos = new ObjectOutputStream(session.get(remoteId).getOutputStream());
             
@@ -249,14 +154,12 @@ public class Connector {
             msg = (Message)ois.readObject();
             
             if(msg.getMessageType().equals(MessageType.HANDSHAKE)){
-                System.out.print(String.format("[Node %d] [Connect:Phase 3] InputStream Setup Success! \n", myId));
+                logger.trace("[Node {}] [Connect:Phase 3] InputStream Setup Success!", myId);
             }
-            System.out.print(String.format("[Node %d] [Connect:Phase 3] Send %s\n", myId, msg.toString()));
+            logger.trace("[Node {}] [Connect:Phase 3] Send {}", myId, msg.toString());
             numRecved++;
         }
-
-        System.out.print(String.format("[Node %d] [Connect:Phase 3] Build Channel Done.\n", myId));
-        
+        logger.trace("[Node {}] [Connect:Phase 3] Build Channel Done.", myId);
     }
     
     
@@ -277,6 +180,6 @@ public class Connector {
         } catch (IOException e){
             logger.error("Exception occured when trying to close socket ", e.getMessage());
         }
-        System.out.print(String.format("[Node %d] All Socket Closed.\n", myId));
+        logger.info("[Node {}] All Socket Closed.", myId);
     }
 }
