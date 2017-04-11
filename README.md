@@ -21,6 +21,11 @@ The build-in configuration file is as follow
       java -Dconnection.mode="loopback" -jar dmLauncher.jar 60004 3 & \
       java -Dconnection.mode="loopback" -jar dmLauncher.jar 60005 4 
       
+    > java -Dconnection.mode="loopback" -Dmutex.algorithm="mutex.ricart.and.agrawala" -jar dmLauncher.jar 60001 0 & \
+      java -Dconnection.mode="loopback" -Dmutex.algorithm="mutex.ricart.and.agrawala" -jar dmLauncher.jar 60002 1 & \
+      java -Dconnection.mode="loopback" -Dmutex.algorithm="mutex.ricart.and.agrawala" -jar dmLauncher.jar 60003 2 & \
+      java -Dconnection.mode="loopback" -Dmutex.algorithm="mutex.ricart.and.agrawala" -jar dmLauncher.jar 60004 3 & \
+      java -Dconnection.mode="loopback" -Dmutex.algorithm="mutex.ricart.and.agrawala" -jar dmLauncher.jar 60005 4 
 ##### Run remotely
 On dcxx linux server 
 
