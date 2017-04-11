@@ -72,8 +72,8 @@ public class MutexConfig {
         configFileDirectory = file.getParent().toString();
         
 
-        logger.info("{} {}", CONFIG_FILE_NAME, configFileName);
-        logger.info("{} {}", CONFIG_FILE_DIRECTORY, configFileDirectory);
+        logger.info("[Node {}] {} {}", myId, CONFIG_FILE_NAME, configFileName);
+        logger.info("[Node {}] {} {}", myId, CONFIG_FILE_DIRECTORY, configFileDirectory);
         
         Charset charset = Charset.forName("UTF-8");
         try {
@@ -84,7 +84,7 @@ public class MutexConfig {
     }
     
     public void loadConfigurationFromInputStream(InputStream in, String fileName){
-        logger.info("{} {}", CONFIG_FILE_NAME, fileName);
+        logger.info("[Node {}] {} {}", myId, CONFIG_FILE_NAME, fileName);
         loadConfigurationFromBufferedReader(
                 new BufferedReader(
                         new InputStreamReader(in)));
@@ -144,7 +144,7 @@ public class MutexConfig {
             
             doConfigure(hosts);
             
-            System.out.println(logger.toString());
+            MutexConfig.logger.info(logger.toString());
             
         } catch (IOException e){
             e.printStackTrace();
