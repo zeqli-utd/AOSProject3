@@ -10,26 +10,29 @@ import edu.utdallas.project3.socket.Linker;
 import edu.utdallas.project3.tools.MutexConfig;
 
 public class RAMutex extends Process implements Lock {
-    int myTimestamp;
-    LamportClock c = new LamportClock();
-    Queue<Integer> pendingQ = new LinkedList<>();
+    int requestTimestamp;
+    LamportClock c;
+    Queue<Integer> pendingQ;         // Deferred messages
     int numOkay = 0;
+    
     public RAMutex(Linker linker, MutexConfig config) {
         super(linker, config);
-        myTimestamp = INFINITY;
+        requestTimestamp = INFINITY;
+        pendingQ = new LinkedList<>();
+        c =  new LamportClock();
     }
     
     @Override
     public synchronized void csEnter() {
         c.tick();
-        myTimestamp = c.getValue();
-        broadcastRequestMessage(myTimestamp);
+        requestTimestamp = c.getValue();
+        broadcastRequestMessage(requestTimestamp);
         numOkay = 0;
-        while (numOkay < numProc-1)
+        while (numOkay < numProc)
             procWait();
     }
     public synchronized void csLeave() {
-        myTimestamp = INFINITY;
+        requestTimestamp = INFINITY;
         while (!pendingQ.isEmpty()) {
             int pid = pendingQ.poll();
             sendOkayMessage(pid, c.getValue());
@@ -60,15 +63,15 @@ public class RAMutex extends Process implements Lock {
         int timeStamp = message.getTimestamp();
         c.receiveAction(src, timeStamp);
         if (tag.equals(MessageType.REQUEST)) {
-            if ((myTimestamp == INFINITY) // not interested in CS
-                    || (timeStamp < myTimestamp)
-                    || ((timeStamp == myTimestamp) && (src < myId)))
+            if ((requestTimestamp == INFINITY)            // Pi has no unfulfilled request of its own
+                    || (timeStamp < requestTimestamp)
+                    || ((timeStamp == requestTimestamp) && (src < myId)))
                 sendOkayMessage(src, c.getValue());
             else
                 pendingQ.add(src);
         } else if (tag.equals(MessageType.RA_OK)) {
             numOkay++;
-            if (numOkay == numProc - 1)
+            if (numOkay == numProc)
                 notify(); // okayCS() may be true now
         }
     }
