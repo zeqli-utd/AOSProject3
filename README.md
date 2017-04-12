@@ -1,5 +1,5 @@
-# CS6378 Advanced Operating System Project 3
-### Implemtation of distributed mutual exclusion algorithm
+# CS6378 Advanced operating system, Spring 2017 
+### Project 3: Implemtation of distributed mutual exclusion algorithm
 
 The build-in configuration file is as follow
 
