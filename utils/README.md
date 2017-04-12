@@ -1,7 +1,6 @@
 ## Test script
 ###### Environment: python3
 
-#### Sample script
 ##### Test correct result, use:
 
     > python grader.py app.log
