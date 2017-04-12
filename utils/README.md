@@ -1,5 +1,5 @@
-### Test script
-###### Environment: python3
+## Test script
+#### Environment: python3
 
 ###### Sample script
-  python grader.py app.log
+    python grader.py app.log
