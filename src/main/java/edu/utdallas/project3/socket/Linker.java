@@ -55,14 +55,14 @@ public class Linker {
         try {
             connector.connect(listenPort, myId, inMap, outMap, neighbors);
         } catch (ClassNotFoundException e){
-            logger.error("(Message) Class not found", e.getMessage());
+            logger.error("[Node {}] (Message) Class not found {}", myId, e.getMessage());
             e.printStackTrace();
         } catch (IOException e) {
-            logger.error("Connection Error ", e.getMessage());
+            logger.error("[Node {}] Connection Error during channel setup {}", myId, e.getMessage());
             close();
         } catch (InterruptedException ex){
             Thread.currentThread().interrupt();
-            logger.error("Thread Error ", ex.getMessage());
+            logger.error("[Node {}] Thread Error {}", myId, ex.getMessage());
         } 
     }
     
@@ -74,15 +74,15 @@ public class Linker {
      * @param content Message body
      * @throws IOException 
      */
-    public synchronized void sendMessage(int dstId, MessageType tag, String content) {
+    public void sendMessage(int dstId, MessageType tag, String content) {
         sendMessage(dstId, new Message(myId, dstId, tag, content));
     }
     
-    public synchronized void sendMessage(int dstId, Message message) {
+    public void sendMessage(int dstId, Message message) {
         try {
             outMap.get(dstId).writeObject(message);
         } catch (IOException e){
-            logger.error("Connection Error ", e.getMessage());
+            logger.error("[Node {}] Connection Error {} {}", myId, message.toString(), e.getMessage());
         } 
         
     }
@@ -101,7 +101,7 @@ public class Linker {
         }
     }
     
-    public synchronized void broadcast(Message message) {
+    public void broadcast(Message message) {
         if (neighbors != null && !neighbors.isEmpty()){
             for (Node remote : neighbors){
                 int destinationId = remote.getNodeId();

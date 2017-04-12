@@ -3,20 +3,22 @@ package edu.utdallas.project3.protocol;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import edu.utdallas.project3.server.Message;
 import edu.utdallas.project3.server.MessageType;
 import edu.utdallas.project3.server.Process;
-import edu.utdallas.project3.socket.Linker;
-import edu.utdallas.project3.tools.MutexConfig;
 
-public class RAMutex extends Process implements Lock {
+public class RAMutex extends Lock {
+	private static final Logger logger = LogManager.getLogger(RAMutex.class.getName());
     int requestTimestamp;
     LamportClock c;
     Queue<Integer> pendingQ;         // Deferred messages
     int numOkay = 0;
     
-    public RAMutex(Linker linker, MutexConfig config) {
-        super(linker, config);
+    public RAMutex(Process proc) {
+        super(proc);
         requestTimestamp = INFINITY;
         pendingQ = new LinkedList<>();
         c =  new LamportClock();
@@ -39,40 +41,44 @@ public class RAMutex extends Process implements Lock {
         }
     }
     
-    
-    public synchronized void sendOkayMessage(int destination, int timestamp) {
+    private void sendOkayMessage(int destination, int timestamp) {
         Message message = new Message(myId, destination, MessageType.RA_OK, "Okay");
         message.setTimestamp(timestamp);
-        super.sendMessage(destination, message);
+        sendMessage(destination, message);
     }
-    
-    public synchronized void broadcastRequestMessage(int timestamp) {
+
+	private void broadcastRequestMessage(int timestamp) {
         Message message = new Message(myId, DUMMY_DESTINATION, MessageType.REQUEST, "Request");
+        logger.trace("[Node {}] broadcast request message", myId);
         message.setTimestamp(timestamp);
-        super.broadcast(message);
-    }
-    
-    public synchronized void broadcastOKayMessage(int timestamp) {
-        Message message = new Message(myId, DUMMY_DESTINATION, MessageType.RA_OK, "Okay");
-        message.setTimestamp(timestamp);
-        super.broadcast(message);
+        broadcast(message);
     }
     
     @Override
-    public synchronized void handleMessage(Message message, int src, MessageType tag) {
+    public synchronized void handleMessage(Message message, int srcId, MessageType tag) {
         int timeStamp = message.getTimestamp();
-        c.receiveAction(src, timeStamp);
-        if (tag.equals(MessageType.REQUEST)) {
-            if ((requestTimestamp == INFINITY)            // Pi has no unfulfilled request of its own
-                    || (timeStamp < requestTimestamp)
-                    || ((timeStamp == requestTimestamp) && (src < myId)))
-                sendOkayMessage(src, c.getValue());
-            else
-                pendingQ.add(src);
-        } else if (tag.equals(MessageType.RA_OK)) {
-            numOkay++;
-            if (numOkay == numProc)
-                notify(); // okayCS() may be true now
+        c.receiveAction(srcId, timeStamp);
+        switch (tag){
+        	case REQUEST:	
+                if ((requestTimestamp == INFINITY)            // Pi has no unfulfilled request of its own
+                        || (timeStamp < requestTimestamp)
+                        || ((timeStamp == requestTimestamp) && (srcId < myId)))
+                    sendOkayMessage(srcId, c.getValue());
+                else
+                    pendingQ.add(srcId);
+                break;
+        	case RA_OK:
+                numOkay++;
+                if (numOkay == numProc)
+                    notify(); // okayCS() may be true now
+                break;
+        	case TERMINATE:
+        		long receivedCount = numProc + 1 - isDone.getCount();
+            	logger.info("[Node {}] Terminate message from {} ({}/{})", myId, srcId, receivedCount, numProc + 1);
+            	isDone.countDown();
+        	default:
+        		break;
+        	
         }
     }
 }

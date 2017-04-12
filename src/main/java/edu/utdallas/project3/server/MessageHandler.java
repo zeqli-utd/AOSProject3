@@ -7,5 +7,5 @@ package edu.utdallas.project3.server;
  */
 public interface MessageHandler {
     void handleMessage(Message m, int srcId, MessageType tag);
-    Message receiveMessage(int fromId);
+    Message receiveMessage(int fromId);    
 }

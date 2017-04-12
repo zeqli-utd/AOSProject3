@@ -2,30 +2,24 @@ package edu.utdallas.project3.protocol;
 import java.util.Comparator;
 import java.util.PriorityQueue;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import edu.utdallas.project3.server.Message;
 import edu.utdallas.project3.server.MessageType;
 import edu.utdallas.project3.server.Process;
-import edu.utdallas.project3.socket.Linker;
-import edu.utdallas.project3.tools.MutexConfig;
 
-public class LamportMutex extends Process implements Lock {
+public class LamportMutex extends Lock {
+    private static final Logger logger = LogManager.getLogger(LamportMutex.class.getName());
+    private DirectClock v;
+    private PriorityQueue<CritialSectionRequest> requestQueue; 
     
-    DirectClock v;
-    PriorityQueue<CritialSectionRequest> requestQueue; 
     
     
-    public LamportMutex(Linker linker, MutexConfig config) {
-        super(linker, config);
-        v = new DirectClock(numProc + 1, myId);
-        requestQueue = new PriorityQueue<>(new Comparator<CritialSectionRequest>(){
-            public int compare(CritialSectionRequest o1, CritialSectionRequest o2){
-                if (o1.timestamp != o2.timestamp){
-                    return o1.timestamp - o2.timestamp;
-                } else {
-                    return o1.nodeId - o2.nodeId;
-                }
-            }
-        });
+    public LamportMutex(Process proc) {
+        super(proc);
+        this.v = new DirectClock(proc.getNumProc() + 1, proc.getMyId());
+        this.requestQueue = new PriorityQueue<>(new RequestComparator());
     }    
     
     public synchronized void csEnter() {
@@ -46,7 +40,7 @@ public class LamportMutex extends Process implements Lock {
     private boolean okayCS() {
         // Pi’s own request is at the top of its queue. Conform to L2
         if (!requestQueue.isEmpty() && requestQueue.peek().nodeId == myId){
-            System.out.print(String.format("[Node %d] %s\n", myId, v.toString()));
+            logger.trace("[Node {}] {}", myId, v.toString());
             
             // Pi has received a message with timestamp larger than that of its own request from all processes.
             if (v.isSmallest(requestQueue.peek().timestamp)) {
@@ -56,38 +50,57 @@ public class LamportMutex extends Process implements Lock {
         return false;
     }
     
-    public synchronized void sendACKMessage(int destination, int timestamp) {
+    public void sendACKMessage(int destination, int timestamp) {
         Message message = new Message(myId, destination, MessageType.ACK, "Acknowledgement");
         message.setTimestamp(timestamp);
-        super.sendMessage(destination, message);
+        sendMessage(destination, message);
     }
     
-    public synchronized void broadcastRequestMessage(int timestamp) {
+    public void broadcastRequestMessage(int timestamp) {
         Message message = new Message(myId, DUMMY_DESTINATION, MessageType.REQUEST, "Request");
         message.setTimestamp(timestamp);
-        super.broadcast(message);
+        broadcast(message);
     }
     
-    public synchronized void broadcastReleaseMessage(int timestamp) {
+    public void broadcastReleaseMessage(int timestamp) {
         Message message = new Message(myId, DUMMY_DESTINATION, MessageType.RELEASE, "Release");
         message.setTimestamp(timestamp);
-        super.broadcast(message);
+        broadcast(message);
     }
+    
     
     
     @Override
-    public synchronized void handleMessage(Message message, int src, MessageType tag) {
+    public synchronized void handleMessage(Message message, int srcId, MessageType tag) {
         int timeStamp = message.getTimestamp();
-        v.receiveAction(src, timeStamp);
-        System.out.print(String.format("[Node %d] Accepted Message %s from %d\n", myId, tag.name(), src));
-        if (tag.equals(MessageType.REQUEST)) {
-            requestQueue.offer(new CritialSectionRequest(src, timeStamp));
-            sendACKMessage(src, v.getValue(myId));
-            
-        } else if (tag.equals(MessageType.RELEASE)){
-            requestQueue.poll();
+        v.receiveAction(srcId, timeStamp);
+        switch (tag){
+        	case REQUEST:
+        		requestQueue.offer(new CritialSectionRequest(srcId, timeStamp));
+                sendACKMessage(srcId, v.getValue(myId));
+                break;
+        	case RELEASE:
+        		requestQueue.poll();
+        		break;
+        	case TERMINATE:
+        		long receivedCount = numProc + 1 - isDone.getCount();
+            	logger.info("[Node {}] Terminate message from {} ({}/{})", myId, srcId, receivedCount, numProc + 1);
+            	isDone.countDown();
+            default:
+            	break;
         }
         notify(); // okayCS() may be true now
+    }
+    
+    class RequestComparator implements Comparator<CritialSectionRequest>{
+		@Override
+		public int compare(CritialSectionRequest o1, CritialSectionRequest o2){
+            if (o1.timestamp != o2.timestamp){
+                return o1.timestamp - o2.timestamp;
+            } else {
+                return o1.nodeId - o2.nodeId;
+            }
+        }
     }
     
     class CritialSectionRequest{

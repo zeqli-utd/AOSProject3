@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.commons.math3.distribution.ExponentialDistribution;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Marker;
@@ -32,12 +33,6 @@ public class MutexServer {
     private static final String MUTEX_RICART_AND_AGRAWALA = "mutex.ricart.and.agrawala";
     private static final String DEFAULT_MUTEX_ALGORITHM = MUTEX_LAMPORT;
     
-    MutexConfig config = null;
-    
-    public MutexServer(MutexConfig config){
-        this.config = config;
-    }
-    
     /**
      * 
      * @param args <port> <node id> <config-file>
@@ -62,11 +57,6 @@ public class MutexServer {
             config = MutexConfig.loadFromConfigurationFile(in, "config.txt", myId);
         }
         
-        /* Configure a Mutex server */
-        final MutexServer server = new MutexServer(config);
-        
-        
-        
         /* Use thread pools to manage process behaviors */
         ExecutorService pool = Executors.newFixedThreadPool(50);
         
@@ -77,12 +67,13 @@ public class MutexServer {
             linker.buildChannels(port);
             
             String mutexAlgorithm = System.getProperty(MUTEX_ALGORITHM, DEFAULT_MUTEX_ALGORITHM);
-
+            
             Lock lock = null;
+            Process proc = new Process(linker, config);
             if (mutexAlgorithm.equals(MUTEX_LAMPORT)) {
-                lock = new LamportMutex(linker, config);
+                lock = new LamportMutex(proc);
             } else if (mutexAlgorithm.equals(MUTEX_RICART_AND_AGRAWALA)) {
-                lock = new RAMutex(linker, config);
+                lock = new RAMutex(proc);
             } else {
                 throw new UndefinedPropertyException("Mutex algorithm not set");
             }
@@ -91,20 +82,37 @@ public class MutexServer {
                 Runnable task = new ListenerThread(myId, node.getNodeId(), lock);
                 pool.execute(task);
             }
-            
-//            ((LamportMutex)lock).sendToNeighbors(MessageType.DEFAULT, "");
-//            ((LamportMutex)lock).broadcastReleaseMessage(5);
-            
-            Thread.sleep(2000);
-            lock.csEnter();
-            logger.info(CRITICAL_SECTION_MARKER, "[Node {}] Enter critical section", myId);
-            Thread.sleep(2000);
-            logger.info(CRITICAL_SECTION_MARKER, "[Node {}] Leave critical section", myId);
-            lock.csLeave();
 
-            Thread.sleep(10000);
+            int meanInterRequestDelay = config.getMeanInterRequestDelay();
+            int meanCSExecution = config.getMeanCSExecution();
+            int numberOfRequest = config.getNumberOfRequest();
+            ExponentialDistribution edIRD = new ExponentialDistribution(meanInterRequestDelay);
+            ExponentialDistribution edCSE = new ExponentialDistribution(meanCSExecution);
+            final Lock effectiveLock = lock;
+            Runnable criticalSectionTask = () -> {
+            	try {
+            		boolean isFirstTime = true;
+	            	for (int i = 0; i < numberOfRequest; i++){
+	            		if (!isFirstTime){
+	            		    Thread.sleep((long) edCSE.sample());
+	            		}
+	            		effectiveLock.csEnter();
+	            		logger.info(CRITICAL_SECTION_MARKER, "[Node {}] Enter critical section", myId);
+						Thread.sleep((long) edIRD.sample());
+						logger.info(CRITICAL_SECTION_MARKER, "[Node {}] Leave critical section", myId);
+						effectiveLock.csLeave();
+						isFirstTime = false;
+	            	}
+	            	logger.info("[Node {}] Critical section done..", myId);
+	            	effectiveLock.broadcastTerminationMessage();
+            	} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+            };
+            pool.execute(criticalSectionTask);
+            lock.waitForDone();
             
-        } catch (UndefinedPropertyException | InterruptedException e) {
+        } catch (UndefinedPropertyException e) {
             e.printStackTrace();
         } finally {
             pool.shutdown();

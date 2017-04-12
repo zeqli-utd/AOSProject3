@@ -1,17 +1,18 @@
 package edu.utdallas.project3.server;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Semaphore;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import edu.utdallas.project3.socket.Linker;
 import edu.utdallas.project3.tools.MutexConfig;
 
 public class Process implements MessageHandler{
 
-    protected static final int INFINITY = -1;
-    protected static final int DUMMY_DESTINATION = -1;
+	private static final Logger logger = LogManager.getLogger(Process.class.getName());
+	
     protected int numProc, myId;
     protected Linker linker;
    
@@ -19,53 +20,14 @@ public class Process implements MessageHandler{
     /**
      * Central repository to retrieve and store helpful settings
      */
-    protected MutexConfig config;
-    
-    /**
-     * Snapshot for termination detection
-     */
-    protected int[] snapshotForMap;
-    
-    
-    /**
-     * Snapshot for vector clock
-     */
-    protected int[] snapshotForVector;
-    
-    /**
-     * RecvCamera produce 1 snapshot, release available semaphore once.
-     */
-    protected Semaphore available;
-    
-    /**
-     * Permission to take snapshot
-     * Control by node 0.
-     */
-    protected Semaphore snapshotPermission;
-    
-    protected Semaphore mutex;
-    
-    /**
-     * Snapshot history, supplied by RecvCamera
-     */
-    protected List<int[]> snapshotList;
-    
-    /**
-     * Current snapshot index node 0 are collecting
-     */
-    protected int snapshotIndex;
-    
+    protected MutexConfig config;    
+
     public Process(Linker initLinker, MutexConfig config){
         this.config = config;
         
         this.linker = initLinker;
         this.myId = linker.getMyId();
-        this.numProc = linker.getNeighbors().size();  
-        this.available = new Semaphore(0);
-        this.snapshotPermission = new Semaphore(1);
-        this.snapshotList = new ArrayList<>();
-        this.snapshotIndex = 0;
-        this.mutex = new Semaphore(1);
+        this.numProc = linker.getNeighbors().size();
     }
     
     /**
@@ -77,21 +39,19 @@ public class Process implements MessageHandler{
      * @throws IOException 
      */
     public synchronized void handleMessage(Message msg, int srcId, MessageType tag) {
-        System.out.println(String.format("[Node %d] [Request] content=%s", myId, msg.toString()));
+        logger.info("[Node {}] [Request] content={}", myId, msg.toString());
     }
 
-    public synchronized void sendMessage(int destination, MessageType tag, String content) {
+    public void sendMessage(int destination, MessageType tag, String content) {
         Message message = new Message(myId, destination, tag, content);
         linker.sendMessage(destination, message);
     }
-    
-
-    
-    public synchronized void sendMessage(int destination, Message message) {
+   
+    public void sendMessage(int destination, Message message) {
         linker.sendMessage(destination, message);
     }
     
-    public synchronized void broadcast(Message message) {
+    public void broadcast(Message message) {
         linker.broadcast(message);
     }
     
@@ -101,7 +61,7 @@ public class Process implements MessageHandler{
      * @param content
      * @throws IOException
      */
-    public synchronized void sendToNeighbors(MessageType tag, String content) {
+    public void sendToNeighbors(MessageType tag, String content) {
         List<Node> neighbors = linker.getNeighbors();
         linker.multicast(neighbors, tag, content);
     }
@@ -119,11 +79,23 @@ public class Process implements MessageHandler{
         try{
             wait();
         } catch (InterruptedException e){
-            System.err.println(e);
+			Thread.currentThread().interrupt();
         }
     }
     
-    /**
+    public int getNumProc() {
+		return numProc;
+	}
+
+	public int getMyId() {
+		return myId;
+	}
+
+	public MutexConfig getConfig() {
+		return config;
+	}
+
+	/**
      * String representation of process
      */
     public synchronized String toString(){

@@ -11,5 +11,6 @@ public enum MessageType {
     ACK,
     RA_OK,                // Ricart and Agrawala's Ok message
     REQUEST,
-    RELEASE
+    RELEASE,
+    TERMINATE
 }
