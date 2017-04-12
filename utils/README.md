@@ -2,14 +2,14 @@
 ###### Environment: python3
 
 #### Sample script
-Test correct result, use:
+##### Test correct result, use:
 
     > python grader.py app.log
     
     [Trace] Processing log file: app.log
     Congratulations! Your algorithm is correct :)
     
-Test invalid result, use:
+##### Test invalid result, use:
 
     > python grade.py app-mismatch.log
     
