@@ -1,6 +1,9 @@
 # CS6378 Advanced operating system, Spring 2017 
 ### Project 3: Implemtation of distributed mutual exclusion algorithm
 
+##### Build maven project
+    > mvn clean package assembly:single
+
 The build-in configuration file is as follow
 
     # Number of nodes | mean inter request delay | mean critical section delay | number of total critical section per node 
